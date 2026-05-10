@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es-MX"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Instrucciones Cuenta Clara v2</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f5f7fb;color:#15202b;margin:0;line-height:1.5}main{max-width:900px;margin:auto;padding:22px}.card{background:#fff;border:1px solid #d7dde8;border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 10px 24px rgba(16,24,40,.08)}code,pre{background:#f1f5f9;border-radius:10px;padding:2px 6px}pre{padding:12px;overflow:auto}a{color:#0f62fe;font-weight:700}.ok{color:#11845b;font-weight:800}.warn{color:#b45309;font-weight:800}.bad{color:#c62828;font-weight:800}li{margin:6px 0}</style></head><body><main>
+<h1>Cuenta Clara v2 — instrucciones rápidas</h1>
+<div class="card"><h2>Qué cambió en esta versión</h2><ul>
+<li>El <b>visor.html ya no trae la clave de descifrado escrita en el código</b>.</li>
+<li>El visor pide una clave al abrir. Sin esa clave no puede descifrar el JSON.</li>
+<li>El editor también pide la clave para cifrar/descifrar. Debe ser la misma clave que usará el visor.</li>
+<li>Puedes marcar “Recordar clave en este dispositivo”, pero eso baja seguridad si alguien usa el dispositivo desbloqueado.</li>
+</ul></div>
+<div class="card"><h2>Archivos incluidos</h2><ul>
+<li><code>editor.html</code>: para capturar movimientos y guardar el JSON cifrado.</li>
+<li><code>visor.html</code>: para consultar el estado de cuenta y calcular el saldo.</li>
+<li><code>apps_script_code.gs</code>: código de Google Apps Script para guardar/leer el JSON cifrado en Drive.</li>
+</ul></div>
+<div class="card"><h2>Configuración de Apps Script</h2><ol>
+<li>Abre <a href="https://script.google.com/" target="_blank">Google Apps Script</a>.</li>
+<li>Crea un proyecto o abre el existente.</li>
+<li>Pega el contenido de <code>apps_script_code.gs</code>.</li>
+<li>En <b>Configuración del proyecto → Propiedades de secuencia de comandos</b>, configura:</li>
+</ol><pre>ADMIN_TOKEN = tu_token_largo_para_guardar
+FOLDER_ID = solo_el_id_de_tu_carpeta_de_drive
+FILE_NAME = estado_prestamos_cifrado.json</pre>
+<p><b>FOLDER_ID</b> debe ser solo el ID de la carpeta, no la URL completa.</p>
+<pre>URL: https://drive.google.com/drive/folders/1ABCxyz...?usp=sharing
+FOLDER_ID: 1ABCxyz...</pre>
+<ol start="5"><li>Implementa como <b>App web</b>.</li><li><b>Ejecutar como:</b> Yo.</li><li><b>Quién tiene acceso:</b> Cualquiera.</li><li>Copia la URL que termina en <code>/exec</code>.</li></ol>
+</div>
+<div class="card"><h2>Configuración del editor</h2>
+<p>En <code>editor.html</code>, cambia:</p><pre>const API_URL = 'TU_URL_DE_APPS_SCRIPT/exec';
+const ADMIN_TOKEN = 'EL_MISMO_ADMIN_TOKEN_DE_APPS_SCRIPT';</pre>
+<p>No pongas la clave de cifrado en el código. La capturas en la pantalla del editor.</p>
+</div>
+<div class="card"><h2>Configuración del visor</h2>
+<p>En <code>visor.html</code>, cambia solo:</p><pre>const API_URL = 'TU_URL_DE_APPS_SCRIPT/exec';</pre>
+<p>El visor pedirá la clave al abrir. Esa clave debe ser la misma que usaste en el editor al guardar.</p>
+</div>
+<div class="card"><h2>Prueba recomendada</h2><ol>
+<li>Abre el editor.</li><li>Captura la clave de cifrado.</li><li>Agrega un movimiento positivo y uno negativo.</li><li>Guarda en Drive.</li><li>Abre el visor.</li><li>Captura la misma clave.</li><li>Debe mostrar historial y saldo calculado.</li></ol></div>
+<div class="card"><h2>Seguridad importante</h2><ul>
+<li><span class="ok">Bien:</span> visor público sin clave escrita en el código.</li>
+<li><span class="bad">Mal:</span> clave fija dentro del HTML si vas a subirlo a una web pública.</li>
+<li>Usa una frase larga, no un PIN de 4 dígitos. Ejemplo: <code>PrestamosFamilia2026!</code></li>
+<li>Si el navegador con cuentas Google logueadas falla al llamar Apps Script, considera usar Cloudflare Worker como puente.</li>
+</ul></div>
+</main></body></html>

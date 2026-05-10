@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Editor de préstamos</title>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#ffffff; --text:#15202b; --muted:#667085; --line:#d7dde8;
+      --primary:#0f62fe; --primary2:#084dbf; --danger:#c62828; --ok:#11845b; --warn:#b45309;
+      --shadow:0 10px 24px rgba(16,24,40,.08); --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text)}
+    header{position:sticky;top:0;z-index:10;background:rgba(245,247,251,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 16px}
+    h1{margin:0;font-size:20px;line-height:1.2}.subtitle{margin-top:4px;color:var(--muted);font-size:13px}
+    main{max-width:1100px;margin:0 auto;padding:16px 14px 60px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:14px 0}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-6{grid-column:span 6}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
+    label{font-size:13px;font-weight:700;margin-bottom:6px;display:block;color:#344054}input,textarea,button{font:inherit}
+    input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;color:var(--text);outline:none}textarea{min-height:120px;resize:vertical}input:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,98,254,.12)}
+    .btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.btn{border:0;border-radius:12px;padding:12px 14px;background:var(--primary);color:#fff;font-weight:800;cursor:pointer}.btn:hover{background:var(--primary2)}.btn.secondary{background:#eef2f7;color:#1d2939}.btn.danger{background:var(--danger)}.btn.ok{background:var(--ok)}.btn.warn{background:var(--warn)}
+    .pill{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;background:#eef2f7;color:#344054;font-size:12px;font-weight:700}.pill.bad{background:#fee4e2;color:#b42318}.pill.good{background:#dcfae6;color:#067647}
+    .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px}.metric .k{font-size:12px;color:var(--muted);font-weight:700}.metric .v{font-size:22px;font-weight:900;margin-top:4px}.metric .v.neg{color:var(--danger)}.metric .v.pos{color:var(--ok)}
+    table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#fff}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}th{background:#f8fafc;color:#344054;font-size:12px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}.right{text-align:right}.muted{color:var(--muted)}.small{font-size:12px}.amount-pos{color:var(--ok);font-weight:800}.amount-neg{color:var(--danger);font-weight:800}
+    .notice{border-radius:14px;padding:12px 14px;background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12}.notice.ok{background:#ecfdf3;border-color:#abefc6;color:#054f31}.notice.err{background:#fef3f2;border-color:#fecdca;color:#7a271a}.hidden{display:none!important}.checkline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}.col-3,.col-4,.col-6,.col-8,.col-12{grid-column:span 1}.summary{grid-template-columns:1fr 1fr}th:nth-child(1),td:nth-child(1){min-width:100px}.table-wrap{overflow:auto}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Editor de préstamos</h1>
+  <div class="subtitle">Captura movimientos con monto positivo o negativo. El saldo se calcula por sumatoria.</div>
+</header>
+<main>
+  <section class="card">
+    <h2 style="margin-top:0">Configuración</h2>
+    <div class="notice" id="configWarning">Edita este archivo y cambia API_URL y ADMIN_TOKEN. La clave de cifrado ya no va escrita en el código: se captura en pantalla.</div>
+    <div class="grid" style="margin-top:12px">
+      <div class="col-12">
+        <label>API URL de Google Apps Script</label>
+        <input id="apiUrl" readonly />
+      </div>
+      <div class="col-8">
+        <label>Clave de cifrado / descifrado</label>
+        <input id="claveCifrado" type="password" placeholder="Debe ser la misma que usará el visor" autocomplete="current-password" />
+      </div>
+      <div class="col-4" style="display:flex;align-items:end">
+        <label class="checkline"><input type="checkbox" id="recordarClave" /> Recordar clave en este dispositivo</label>
+      </div>
+      <div class="col-6">
+        <label>Archivo / persona</label>
+        <input id="persona" value="Papá" />
+      </div>
+      <div class="col-3">
+        <label>Moneda</label>
+        <input id="moneda" value="MXN" />
+      </div>
+      <div class="col-3">
+        <label>Registros</label>
+        <input id="contador" readonly />
+      </div>
+      <div class="col-12 btns">
+        <button class="btn secondary" onclick="cargarDesdeDrive()">Cargar último JSON cifrado</button>
+        <button class="btn ok" onclick="guardarEnDrive()">Guardar JSON cifrado en Drive</button>
+        <button class="btn secondary" onclick="descargarRespaldoLocal()">Descargar respaldo local cifrado</button>
+      </div>
+    </div>
+    <p class="small muted">Al guardar se abrirá una pestaña con el resultado de Google Apps Script. Si muestra <b>ok:true</b>, quedó guardado.</p>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Resumen calculado</h2>
+    <div class="summary">
+      <div class="metric"><div class="k">Total positivo</div><div class="v pos" id="totalPos">$0.00</div></div>
+      <div class="metric"><div class="k">Total negativo</div><div class="v neg" id="totalNeg">$0.00</div></div>
+      <div class="metric"><div class="k">Saldo final</div><div class="v" id="saldoFinal">$0.00</div></div>
+      <div class="metric"><div class="k">Última actualización</div><div class="v" id="ultima" style="font-size:16px">—</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Agregar movimiento</h2>
+    <div class="grid">
+      <div class="col-3"><label>Fecha</label><input type="date" id="fecha" /></div>
+      <div class="col-6"><label>Descripción</label><input id="descripcion" placeholder="Ej. Préstamo, abono, transferencia, ajuste..." /></div>
+      <div class="col-3"><label>Monto con signo</label><input type="number" id="monto" step="0.01" placeholder="Ej. 500 o -200" /></div>
+      <div class="col-12 btns">
+        <button class="btn" onclick="agregarMovimiento()">Agregar</button>
+        <button class="btn secondary" onclick="hacerMontoPositivo()">Marcar como positivo</button>
+        <button class="btn secondary" onclick="hacerMontoNegativo()">Marcar como negativo</button>
+        <button class="btn danger" onclick="limpiarTodo()">Vaciar todo</button>
+      </div>
+    </div>
+    <p class="small muted">Regla: monto positivo aumenta la deuda; monto negativo la reduce. El visor no usa tipo de movimiento, solo suma los montos.</p>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Importar desde Excel</h2>
+    <p class="small muted">Pega filas copiadas desde Excel con columnas: <b>fecha, descripción, monto</b>. Acepta fechas DD/MM/AAAA o AAAA-MM-DD. El monto puede venir positivo o negativo.</p>
+    <textarea id="pegado" placeholder="04/05/2026\tPréstamo\t500\n10/05/2026\tAbono\t-200"></textarea>
+    <div class="btns" style="margin-top:10px">
+      <button class="btn secondary" onclick="importarPegado(false)">Importar y agregar</button>
+      <button class="btn warn" onclick="importarPegado(true)">Reemplazar todo con lo pegado</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0">Movimientos</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Descripción</th><th class="right">Movimiento</th><th class="right">Saldo acumulado</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+  /***** CONFIGURACIÓN: CAMBIA ESTOS 2 VALORES *****/
+  const API_URL = 'https://script.google.com/macros/s/AKfycby896Ua2Y6EKgnl0Wn8cjAYXTQmcbIg8XpFKA3SnZokKY4zrLYhsI-9C31d_MZ68mY/exec';
+  const ADMIN_TOKEN = 'CAMBIA_ESTE_TOKEN_ADMIN_IGUAL_AL_DE_APPS_SCRIPT';
+  const STORAGE_KEY = 'cuenta_clara_clave_editor_v2';
+  /**************************************************/
+
+  let movimientos = [];
+  let actualizado = null;
+
+  const $ = id => document.getElementById(id);
+  const money = cents => new Intl.NumberFormat('es-MX', {style:'currency', currency: $('moneda').value || 'MXN'}).format((cents || 0)/100);
+  const todayIso = () => new Date().toISOString().slice(0,10);
+  $('fecha').value = todayIso();
+  $('apiUrl').value = API_URL;
+  cargarClaveGuardada();
+
+  function cargarClaveGuardada(){
+    try{
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if(saved){
+        $('claveCifrado').value = saved;
+        $('recordarClave').checked = true;
+      }
+    }catch(e){}
+  }
+
+  function getEncryptionSecret(){
+    const clave = ($('claveCifrado').value || '').trim();
+    if(!clave) throw new Error('Captura la clave de cifrado. Debe ser la misma que usará el visor.');
+    try{
+      if($('recordarClave').checked) localStorage.setItem(STORAGE_KEY, clave);
+      else localStorage.removeItem(STORAGE_KEY);
+    }catch(e){}
+    return clave;
+  }
+
+  function checkConfig(){
+    const ok = !API_URL.includes('PEGA_AQUI') && !ADMIN_TOKEN.includes('CAMBIA_');
+    $('configWarning').className = ok ? 'notice ok' : 'notice';
+    $('configWarning').textContent = ok ? 'Configuración detectada. Captura la clave para cifrar/descifrar.' : 'Pendiente: cambia API_URL y ADMIN_TOKEN dentro del HTML.';
+  }
+  checkConfig();
+
+  function normalizaCentavos(valor){
+    if (typeof valor === 'number') return Math.round(valor * 100);
+    const limpio = String(valor || '').replace(/\$/g,'').replace(/,/g,'').trim();
+    const num = Number(limpio);
+    if (!Number.isFinite(num)) throw new Error('Monto inválido: ' + valor);
+    return Math.round(num * 100);
+  }
+
+  function parseFecha(v){
+    const s = String(v || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+    throw new Error('Fecha inválida: ' + s);
+  }
+
+  function fechaMx(iso){
+    if(!iso) return '—';
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function agregarMovimiento(){
+    try{
+      const fecha = $('fecha').value;
+      const descripcion = $('descripcion').value.trim();
+      const montoCentavos = normalizaCentavos($('monto').value);
+      if(!fecha) throw new Error('Falta la fecha.');
+      if(!descripcion) throw new Error('Falta la descripción.');
+      if(!montoCentavos) throw new Error('El monto no puede ser cero.');
+      movimientos.push({ id: Date.now(), fecha, descripcion, monto_centavos: montoCentavos });
+      $('descripcion').value = ''; $('monto').value = ''; $('fecha').value = todayIso();
+      render();
+    }catch(err){ alert(err.message); }
+  }
+
+  function hacerMontoPositivo(){ const n = Math.abs(Number($('monto').value || 0)); $('monto').value = n || ''; }
+  function hacerMontoNegativo(){ const n = Math.abs(Number($('monto').value || 0)); $('monto').value = n ? -n : ''; }
+
+  function importarPegado(reemplazar){
+    try{
+      const text = $('pegado').value.trim();
+      if(!text) throw new Error('No hay datos pegados.');
+      const nuevos = [];
+      text.split(/\r?\n/).forEach((line, idx) => {
+        if(!line.trim()) return;
+        let parts = line.split('\t');
+        if(parts.length < 3) parts = line.split(',');
+        if(parts.length < 3) throw new Error('Fila '+(idx+1)+' inválida. Debe traer fecha, descripción, monto.');
+        const fecha = parseFecha(parts[0]);
+        const descripcion = parts.slice(1, parts.length-1).join(' ').trim();
+        const monto_centavos = normalizaCentavos(parts[parts.length-1]);
+        if(!descripcion) throw new Error('Fila '+(idx+1)+' sin descripción.');
+        if(!monto_centavos) throw new Error('Fila '+(idx+1)+' con monto cero.');
+        nuevos.push({ id: Date.now()+idx, fecha, descripcion, monto_centavos });
+      });
+      if(reemplazar) movimientos = nuevos; else movimientos.push(...nuevos);
+      $('pegado').value = '';
+      render();
+    }catch(err){ alert(err.message); }
+  }
+
+  function limpiarTodo(){
+    if(confirm('¿Seguro que quieres vaciar todos los movimientos en pantalla? Esto no borra Drive hasta que guardes.')){
+      movimientos = []; render();
+    }
+  }
+
+  function borrarMovimiento(id){
+    movimientos = movimientos.filter(m => m.id !== id);
+    render();
+  }
+
+  function render(){
+    movimientos.sort((a,b)=> String(a.fecha).localeCompare(String(b.fecha)) || (a.id||0)-(b.id||0));
+    const tbody = $('tbody'); tbody.innerHTML = '';
+    let saldo = 0, pos = 0, neg = 0;
+    movimientos.forEach(m => {
+      saldo += m.monto_centavos;
+      if(m.monto_centavos > 0) pos += m.monto_centavos; else neg += m.monto_centavos;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${fechaMx(m.fecha)}</td><td>${escapeHtml(m.descripcion)}</td><td class="right ${m.monto_centavos>=0?'amount-pos':'amount-neg'}">${m.monto_centavos>=0?'+':''}${money(m.monto_centavos)}</td><td class="right"><b>${money(saldo)}</b></td><td class="right"><button class="btn danger" style="padding:8px 10px" onclick="borrarMovimiento(${m.id})">Borrar</button></td>`;
+      tbody.appendChild(tr);
+    });
+    $('totalPos').textContent = money(pos);
+    $('totalNeg').textContent = money(neg);
+    $('saldoFinal').textContent = money(saldo);
+    $('contador').value = movimientos.length;
+    $('ultima').textContent = actualizado ? actualizado : 'No guardado';
+  }
+
+  function escapeHtml(s){return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+
+  function datasetPlano(){
+    actualizado = new Date().toLocaleString('es-MX', {hour12:true});
+    return {
+      version: 1,
+      actualizado,
+      persona: $('persona').value || 'Papá',
+      moneda: $('moneda').value || 'MXN',
+      movimientos: movimientos.map((m, i) => ({
+        id: i + 1,
+        fecha: m.fecha,
+        descripcion: m.descripcion,
+        monto_centavos: Number(m.monto_centavos)
+      }))
+    };
+  }
+
+  async function guardarEnDrive(){
+    try{
+      if(!movimientos.length && !confirm('No hay movimientos. ¿Deseas guardar un archivo vacío?')) return;
+      const envelope = await encryptObject(datasetPlano());
+      render();
+      postConFormulario(envelope);
+    }catch(err){ alert('Error al guardar: ' + err.message); }
+  }
+
+  function postConFormulario(envelope){
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = API_URL;
+    form.target = '_blank';
+    form.style.display = 'none';
+    const a = document.createElement('input'); a.name = 'adminToken'; a.value = ADMIN_TOKEN;
+    const b = document.createElement('input'); b.name = 'encrypted'; b.value = JSON.stringify(envelope);
+    form.appendChild(a); form.appendChild(b); document.body.appendChild(form);
+    form.submit();
+    setTimeout(()=>form.remove(), 5000);
+  }
+
+  async function descargarRespaldoLocal(){
+    try{
+      const envelope = await encryptObject(datasetPlano());
+      const blob = new Blob([JSON.stringify(envelope, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'estado_prestamos_cifrado.json';
+      a.click(); URL.revokeObjectURL(a.href);
+    }catch(err){ alert(err.message); }
+  }
+
+  function cargarDesdeDrive(){
+    jsonp(API_URL + '?action=get').then(async resp => {
+      if(!resp.ok) throw new Error(resp.error || 'No se pudo cargar.');
+      const plano = await decryptEnvelope(resp.data);
+      $('persona').value = plano.persona || 'Papá';
+      $('moneda').value = plano.moneda || 'MXN';
+      actualizado = plano.actualizado || null;
+      movimientos = (plano.movimientos || []).map((m, i) => ({
+        id: Date.now()+i,
+        fecha: m.fecha,
+        descripcion: m.descripcion,
+        monto_centavos: Number(m.monto_centavos || 0)
+      }));
+      render();
+      alert('Datos cargados correctamente.');
+    }).catch(err => alert('Error al cargar: ' + err.message));
+  }
+
+  function jsonp(url){
+    return new Promise((resolve, reject) => {
+      const cb = 'jsonp_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const sep = url.includes('?') ? '&' : '?';
+      const script = document.createElement('script');
+      const timer = setTimeout(()=>{ cleanup(); reject(new Error('Tiempo agotado al consultar la API.')); }, 20000);
+      window[cb] = data => { cleanup(); resolve(data); };
+      function cleanup(){ clearTimeout(timer); script.remove(); delete window[cb]; }
+      script.onerror = () => { cleanup(); reject(new Error('No se pudo conectar con la API.')); };
+      script.src = url + sep + 'callback=' + encodeURIComponent(cb) + '&t=' + Date.now();
+      document.body.appendChild(script);
+    });
+  }
+
+  async function deriveKey(secret, salt, usages){
+    const baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:210000, hash:'SHA-256' }, baseKey, { name:'AES-GCM', length:256 }, false, usages);
+  }
+  async function encryptObject(obj){
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(getEncryptionSecret(), salt, ['encrypt']);
+    const plain = new TextEncoder().encode(JSON.stringify(obj));
+    const cipher = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, plain));
+    return { version:1, algorithm:'AES-GCM', kdf:'PBKDF2-SHA256', iterations:210000, salt:b64(salt), iv:b64(iv), payload:b64(cipher), saved_at:new Date().toISOString() };
+  }
+  async function decryptEnvelope(env){
+    const salt = fromB64(env.salt), iv = fromB64(env.iv), payload = fromB64(env.payload);
+    const key = await deriveKey(getEncryptionSecret(), salt, ['decrypt']);
+    const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, payload);
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+  function b64(bytes){ let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b)); return btoa(bin); }
+  function fromB64(str){ const bin=atob(str); const out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+  render();
+</script>
+</body>
+</html>
