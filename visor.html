@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Estado de cuenta</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;--card:#fff;--text:#15202b;--muted:#667085;--line:#d7dde8;
+      --ok:#11845b;--danger:#c62828;--primary:#0f62fe;--shadow:0 10px 24px rgba(16,24,40,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text)}
+    .hidden{display:none!important}
+
+    /* Login limpio */
+    #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}
+    .login-card{width:100%;max-width:430px;background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:22px}
+    .login-card h1{margin:0 0 6px;font-size:25px;letter-spacing:-.02em}
+    .login-card p{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.4}
+    .input{width:100%;border:1px solid var(--line);border-radius:14px;padding:14px 13px;font:inherit;outline:none;background:#fff}
+    .input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,98,254,.12)}
+    .btn{width:100%;border:0;border-radius:14px;padding:14px 16px;background:var(--primary);color:#fff;font-weight:900;font-size:15px;cursor:pointer;margin-top:12px}
+    .btn:disabled{opacity:.65;cursor:not-allowed}
+    .checkline{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted)}
+    .error{margin-top:12px;border-radius:14px;padding:11px 12px;background:#fef3f2;border:1px solid #fecdca;color:#7a271a;font-size:13px;line-height:1.35}
+    .hint{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.35}
+
+    /* Vista limpia de movimientos */
+    #appScreen{min-height:100vh;padding:10px 10px 22px}
+    .topbar{position:sticky;top:0;z-index:5;background:rgba(245,247,251,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px 4px 10px;margin:0 -10px 10px}
+    .topbar-inner{max-width:900px;margin:0 auto;padding:0 10px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .title-wrap{min-width:0}.title{font-size:18px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.subtitle{color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .icon-btn{border:1px solid var(--line);background:#fff;color:#1d2939;border-radius:12px;padding:9px 10px;font-weight:800;cursor:pointer;box-shadow:0 4px 10px rgba(16,24,40,.04)}
+    .content{max-width:900px;margin:0 auto;padding-bottom:90px}
+    .floating-total-wrap{position:sticky;top:72px;z-index:4;display:flex;justify-content:center;pointer-events:none;margin:0 0 10px}
+    .floating-total{pointer-events:auto;background:#1f62ff;border:1pt solid #fff;border-radius:999px;box-shadow:0 10px 24px rgba(16,24,40,.18);padding:9px 18px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(12px)}
+    .summary-label{color:#56d05f;font-size:12px;font-weight:900;white-space:nowrap}
+    .summary-total{font-size:22px;font-weight:950;white-space:nowrap;color:#56d05f}
+    .floating-total.neg .summary-label,.floating-total.neg .summary-total{color:var(--danger)}
+    .floating-total.pos .summary-label,.floating-total.pos .summary-total{color:#56d05f}
+    .filters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+    .filter-option{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:850;color:#344054;white-space:nowrap}
+    .filter-option input{margin:0;accent-color:var(--primary)}
+    .search{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px;font:inherit;outline:none;margin-bottom:10px;background:#fff}
+    .list{display:grid;gap:8px}
+    .mov{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 13px;box-shadow:0 4px 12px rgba(16,24,40,.04)}
+    .mov-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .date{color:var(--muted);font-size:12px;font-weight:700;margin-bottom:4px}
+    .desc{font-size:15px;font-weight:800;line-height:1.25;word-break:break-word}.amount{font-size:15px;font-weight:950;text-align:right;white-space:nowrap}.amount.pos{color:var(--ok)}.amount.neg{color:var(--danger)}
+    .empty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:18px;text-align:center;color:var(--muted)}
+    .loading-overlay{position:fixed;inset:0;z-index:99;background:rgba(245,247,251,.78);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:22px}
+    .loading-box{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:24px 26px;text-align:center;min-width:240px}
+    .spinner{width:44px;height:44px;border-radius:50%;border:5px solid #e6edf7;border-top-color:var(--primary);margin:0 auto 14px;animation:girar .8s linear infinite}
+    .loading-text{font-weight:900;color:#1d2939}
+    @keyframes girar{to{transform:rotate(360deg)}}
+    @media print{#loginScreen,.topbar,.search{display:none!important}#appScreen{padding:0}.mov{box-shadow:none;break-inside:avoid}}
+  </style>
+</head>
+<body>
+  <section id="loginScreen">
+    <div class="login-card">
+      <h1>Estado de cuenta</h1>
+      <p>Ingresa el PIN/clave para cargar y descifrar la información.</p>
+      <input class="input" type="password" id="clave" placeholder="PIN o clave de acceso" autocomplete="current-password" />
+      <label class="checkline"><input type="checkbox" id="recordarClave" /> Recordar en este dispositivo</label>
+      <button class="btn" id="btnEntrar" onclick="loginYcargar()">Entrar</button>
+      <div id="loginError" class="error hidden"></div>
+      <div class="hint">El visor no guarda la clave dentro del código. Si la clave es incorrecta, no se puede descifrar el JSON.</div>
+    </div>
+  </section>
+
+  <section id="appScreen" class="hidden">
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="title-wrap">
+          <div class="title" id="titulo">Movimientos</div>
+          <div class="subtitle" id="subtitulo"></div>
+        </div>
+        <button class="icon-btn" onclick="actualizar()">Actualizar</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="floating-total-wrap" aria-live="polite">
+        <div class="floating-total pos" id="saldoBubble">
+          <span class="summary-label">Saldo total</span>
+          <span class="summary-total" id="saldoTotal">$0.00</span>
+        </div>
+      </div>
+      <div class="filters" role="radiogroup" aria-label="Filtro de movimientos">
+        <label class="filter-option"><input type="radio" name="filtroTipo" value="todos" checked onchange="render()" /> Todos</label>
+        <label class="filter-option"><input type="radio" name="filtroTipo" value="abonos" onchange="render()" /> Solo abonos</label>
+        <label class="filter-option"><input type="radio" name="filtroTipo" value="cargos" onchange="render()" /> Solo cargos</label>
+      </div>
+      <input class="search" id="buscar" placeholder="Buscar movimiento..." oninput="render()" />
+      <div id="lista" class="list"></div>
+    </div>
+  </section>
+
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <div class="loading-text">Cargando información...</div>
+    </div>
+  </div>
+
+<script>
+  /***** CONFIGURACIÓN *****/
+  const API_URL = 'https://script.google.com/macros/s/AKfycby896Ua2Y6EKgnl0Wn8cjAYXTQmcbIg8XpFKA3SnZokKY4zrLYhsI-9C31d_MZ68mY/exec';
+  const STORAGE_KEY = 'cuenta_clara_clave_v2';
+  /*************************/
+
+  let datos = null;
+  let movimientos = [];
+  let ENCRYPTION_SECRET = '';
+  const $ = id => document.getElementById(id);
+
+  function init(){
+    try{
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if(saved){
+        $('clave').value = saved;
+        $('recordarClave').checked = true;
+      }
+    }catch(e){}
+    $('clave').addEventListener('keydown', ev => { if(ev.key === 'Enter') loginYcargar(); });
+  }
+
+  async function loginYcargar(){
+    const clave = ($('clave').value || '').trim();
+    if(!clave){ mostrarError('Ingresa el PIN/clave de acceso.'); return; }
+    ENCRYPTION_SECRET = clave;
+    await cargarConClave(true);
+  }
+
+  async function cargarConClave(desdeLogin){
+    $('btnEntrar').disabled = true;
+    $('btnEntrar').textContent = desdeLogin ? 'Validando...' : 'Actualizando...';
+    mostrarError('');
+    setLoading(true, desdeLogin ? 'Cargando información...' : 'Actualizando información...');
+    try{
+      if(API_URL.includes('PEGA_AQUI')) throw new Error('Falta configurar API_URL dentro del HTML.');
+
+      const resp = await jsonp(API_URL + '?action=get');
+      if(!resp.ok) throw new Error(resp.error || 'No se pudo consultar la API.');
+
+      datos = await decryptEnvelope(resp.data);
+      movimientos = (datos.movimientos || []).map((m,i)=>({
+        id:i+1,
+        fecha:m.fecha,
+        descripcion:m.descripcion || '',
+        monto_centavos:Number(m.monto_centavos || 0)
+      }));
+      movimientos.sort((a,b)=> String(a.fecha).localeCompare(String(b.fecha)) || a.id-b.id);
+
+      try{
+        if($('recordarClave').checked) localStorage.setItem(STORAGE_KEY, ENCRYPTION_SECRET);
+        else localStorage.removeItem(STORAGE_KEY);
+      }catch(e){}
+
+      $('titulo').textContent = 'Movimientos' + (datos.persona ? ' · ' + datos.persona : '');
+      $('subtitulo').textContent = (datos.actualizado ? 'Actualizado: ' + datos.actualizado + ' · ' : '') + movimientos.length + ' registros';
+      $('loginScreen').classList.add('hidden');
+      $('appScreen').classList.remove('hidden');
+      render(true);
+    }catch(err){
+      if(desdeLogin){
+        mostrarError(friendlyError(err));
+      }else{
+        alert(friendlyError(err));
+      }
+    }finally{
+      setLoading(false);
+      $('btnEntrar').disabled = false;
+      $('btnEntrar').textContent = 'Entrar';
+    }
+  }
+
+  async function actualizar(){
+    if(!ENCRYPTION_SECRET){
+      $('appScreen').classList.add('hidden');
+      $('loginScreen').classList.remove('hidden');
+      return;
+    }
+    await cargarConClave(false);
+  }
+
+  function mostrarError(msg){
+    const box = $('loginError');
+    if(!msg){ box.textContent=''; box.classList.add('hidden'); return; }
+    box.textContent = msg;
+    box.classList.remove('hidden');
+  }
+
+  function setLoading(show, text){
+    const overlay = $('loadingOverlay');
+    if(!overlay) return;
+    const label = overlay.querySelector('.loading-text');
+    if(label && text) label.textContent = text;
+    overlay.classList.toggle('hidden', !show);
+  }
+
+  function friendlyError(err){
+    const msg = String(err && err.message ? err.message : err).toLowerCase();
+    if(msg.includes('decrypt') || msg.includes('operation') || msg.includes('clave') || msg.includes('pin')) {
+      return 'PIN o clave incorrecta.';
+    }
+    return 'Error al traer la información. Intenta de nuevo.';
+  }
+
+  function render(scrollToLatest){
+    const q = ($('buscar').value || '').toLowerCase().trim();
+    const filtro = (document.querySelector('input[name="filtroTipo"]:checked') || {}).value || 'todos';
+    const lista = $('lista');
+    lista.innerHTML = '';
+
+    const saldoTotal = movimientos.reduce((acc, m) => acc + Number(m.monto_centavos || 0), 0);
+    $('saldoTotal').textContent = money(saldoTotal);
+    $('saldoTotal').className = 'summary-total ' + (saldoTotal < 0 ? 'neg' : 'pos');
+    if($('saldoBubble')) $('saldoBubble').className = 'floating-total ' + (saldoTotal < 0 ? 'neg' : 'pos');
+
+    let count = 0;
+    let latestVisibleEl = null;
+    movimientos.forEach(m => {
+      const monto = m.monto_centavos;
+      const pasaFiltro = filtro === 'todos' || (filtro === 'abonos' && monto < 0) || (filtro === 'cargos' && monto > 0);
+      const pasaBusqueda = !q || m.descripcion.toLowerCase().includes(q) || fechaMx(m.fecha).includes(q) || String(monto/100).includes(q);
+      if(!pasaFiltro || !pasaBusqueda) return;
+      count++;
+      const div = document.createElement('div');
+      div.className = 'mov';
+      div.dataset.fecha = m.fecha || '';
+      div.innerHTML = `
+        <div class="mov-head">
+          <div>
+            <div class="date">${fechaMx(m.fecha)}</div>
+            <div class="desc">${escapeHtml(m.descripcion || 'Sin descripción')}</div>
+          </div>
+          <div class="amount ${monto>=0?'pos':'neg'}">${monto>=0?'+':''}${money(monto)}</div>
+        </div>`;
+      lista.appendChild(div);
+      latestVisibleEl = div;
+    });
+    if(count === 0){
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.textContent = 'No hay movimientos para mostrar.';
+      lista.appendChild(div);
+    }
+    if(scrollToLatest && latestVisibleEl){
+      setTimeout(() => latestVisibleEl.scrollIntoView({behavior:'smooth', block:'center'}), 120);
+    }
+  }
+
+  function money(cents){
+    return new Intl.NumberFormat('es-MX', {style:'currency', currency: (datos && datos.moneda) || 'MXN'}).format((cents || 0)/100);
+  }
+  function fechaMx(iso){ if(!iso) return '—'; const [y,m,d] = String(iso).split('-'); return d&&m&&y ? `${d}/${m}/${y}` : iso; }
+  function escapeHtml(s){return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+
+  function jsonp(url){
+    return new Promise((resolve, reject) => {
+      const cb = 'jsonp_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const sep = url.includes('?') ? '&' : '?';
+      const script = document.createElement('script');
+      const timer = setTimeout(()=>{ cleanup(); reject(new Error('Tiempo agotado al consultar la API.')); }, 20000);
+      window[cb] = data => { cleanup(); resolve(data); };
+      function cleanup(){ clearTimeout(timer); script.remove(); delete window[cb]; }
+      script.onerror = () => { cleanup(); reject(new Error('No se pudo conectar con la API.')); };
+      script.src = url + sep + 'callback=' + encodeURIComponent(cb) + '&t=' + Date.now();
+      document.body.appendChild(script);
+    });
+  }
+
+  async function deriveKey(secret, salt, usages){
+    const baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:210000, hash:'SHA-256' }, baseKey, { name:'AES-GCM', length:256 }, false, usages);
+  }
+  async function decryptEnvelope(env){
+    const salt = fromB64(env.salt), iv = fromB64(env.iv), payload = fromB64(env.payload);
+    const key = await deriveKey(ENCRYPTION_SECRET, salt, ['decrypt']);
+    const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, payload);
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+  function fromB64(str){ const bin=atob(str); const out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+
+  init();
+</script>
+</body>
+</html>
