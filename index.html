@@ -54,6 +54,8 @@
     .search{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px;font:inherit;outline:none;margin-bottom:10px;background:#fff}
     .list{display:grid;gap:8px}
     .mov{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 13px;box-shadow:0 4px 12px rgba(16,24,40,.04)}
+    .mov.mov-pos{background:linear-gradient(90deg,#effdf5 0%,#f7fffb 100%);border-color:#c9f2da}
+    .mov.mov-neg{background:linear-gradient(90deg,#fff1f3 0%,#fff8f9 100%);border-color:#ffd1d8}
     .mov-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
     .date{color:var(--muted);font-size:12px;font-weight:700;margin-bottom:4px}
     .desc{font-size:15px;font-weight:800;line-height:1.25;word-break:break-word}.amount{font-size:15px;font-weight:950;text-align:right;white-space:nowrap}.amount.pos{color:var(--ok)}.amount.neg{color:var(--danger)}
@@ -241,7 +243,7 @@
       if(!pasaFiltro || !pasaBusqueda) return;
       count++;
       const div = document.createElement('div');
-      div.className = 'mov';
+      div.className = 'mov ' + (monto >= 0 ? 'mov-pos' : 'mov-neg');
       div.dataset.fecha = m.fecha || '';
       div.innerHTML = `
         <div class="mov-head">
