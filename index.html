@@ -138,10 +138,8 @@
   /***** CONFIGURACIÓN *****/
   const API_URL = 'https://script.google.com/macros/s/AKfycby896Ua2Y6EKgnl0Wn8cjAYXTQmcbIg8XpFKA3SnZokKY4zrLYhsI-9C31d_MZ68mY/exec';
   const STORAGE_KEY = 'cuenta_clara_clave_v2';
-  const PUSH_ENABLED_KEY = 'cuenta_clara_push_activado_v1';
-  // Para push real: pega tu VAPID public key y endpoint backend en las instrucciones.
-  const VAPID_PUBLIC_KEY = '';
-  const PUSH_SUBSCRIBE_URL = ''; // Ejemplo: https://tu-worker.workers.dev/subscribe
+  const PUSH_ENABLED_KEY = 'cuenta_clara_push_activado_v2';
+  const PUSH_WORKER_URL = 'https://steep-butterfly-5ed1.jelr87.workers.dev';
   /*************************/
 
   let datos = null;
@@ -460,21 +458,28 @@
   function actualizarEstadoBotonPush(){
     const btn = $('pushCta');
     if(!btn) return;
-    const soporta = 'serviceWorker' in navigator && 'Notification' in window;
+    const soporta = 'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window;
     if(!soporta){ btn.classList.add('hidden'); return; }
-    const activado = localStorage.getItem(PUSH_ENABLED_KEY) === '1' || Notification.permission === 'granted';
+    const activado = localStorage.getItem(PUSH_ENABLED_KEY) === '1';
     btn.classList.toggle('hidden', activado);
   }
 
   async function activarNotificaciones(){
     const btn = $('pushCta');
     try{
-      if(!('serviceWorker' in navigator) || !('Notification' in window)){
+      if(!('serviceWorker' in navigator) || !('Notification' in window) || !('PushManager' in window)){
         toast('Este navegador no permite notificaciones web.', 'warn');
         return;
       }
+      if(!PUSH_WORKER_URL){
+        toast('Falta configurar notificaciones.', 'err');
+        return;
+      }
       btn && (btn.disabled = true);
+
       const reg = await navigator.serviceWorker.register('./service-worker.js');
+      await navigator.serviceWorker.ready;
+
       const permiso = await Notification.requestPermission();
       if(permiso !== 'granted'){
         toast('No se activaron las notificaciones.', 'warn');
@@ -482,24 +487,39 @@
         return;
       }
 
-      // Si configuras Web Push real, se suscribe y manda la suscripción al backend.
-      if(VAPID_PUBLIC_KEY && PUSH_SUBSCRIBE_URL && 'PushManager' in window){
-        const sub = await reg.pushManager.subscribe({
+      const keyResp = await fetch(PUSH_WORKER_URL + '/vapid-public-key');
+      const keyData = await keyResp.json();
+      if(!keyData.ok || !keyData.publicKey) throw new Error('No se pudo obtener llave pública.');
+
+      let sub = await reg.pushManager.getSubscription();
+      if(!sub){
+        sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-        });
-        await fetch(PUSH_SUBSCRIBE_URL, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ subscription: sub, app: 'cuenta-clara' })
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
         });
       }
 
-      try{ await reg.showNotification('Cuenta Clara', { body:'Notificaciones activadas.', icon:'./icon-192.png', tag:'cuenta-clara-prueba' }); }catch(e){}
+      const saveResp = await fetch(PUSH_WORKER_URL + '/subscribe?t=' + Date.now(), {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(sub)
+      });
+      const saveData = await saveResp.json().catch(() => ({ok:false}));
+      console.log('Respuesta /subscribe:', saveResp.status, saveData);
+      if(!saveResp.ok || !saveData.ok) throw new Error('No se pudo guardar suscripción.');
+
+      const countResp = await fetch(PUSH_WORKER_URL + '/count?t=' + Date.now(), { cache: 'no-store' });
+      const countData = await countResp.json().catch(() => ({ok:false, subscriptions:0}));
+      console.log('Respuesta /count:', countResp.status, countData);
+      if(!countResp.ok || !countData.ok || Number(countData.subscriptions || 0) < 1) {
+        throw new Error('La suscripción no quedó registrada.');
+      }
+
       localStorage.setItem(PUSH_ENABLED_KEY, '1');
       actualizarEstadoBotonPush();
       toast('Notificaciones activadas.', 'ok');
     }catch(err){
+      console.warn(err);
       toast('No se pudieron activar las notificaciones.', 'err');
       btn && (btn.disabled = false);
     }
