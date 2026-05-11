@@ -7,6 +7,8 @@
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#f5f7fb" />
   <style>
     :root{
       --bg:#f5f7fb;--card:#fff;--text:#15202b;--muted:#667085;--line:#d7dde8;
@@ -42,11 +44,16 @@
     .title-wrap{min-width:0}.title{font-size:18px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.subtitle{color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .icon-btn{border:1px solid var(--line);background:#fff;color:#1d2939;border-radius:12px;padding:9px 10px;font-weight:800;cursor:pointer;box-shadow:0 4px 10px rgba(16,24,40,.04)}
     .content{max-width:900px;margin:0 auto;padding-bottom:90px}
-    .floating-total-wrap{position:sticky;top:72px;z-index:4;display:flex;justify-content:center;pointer-events:none;margin:0 0 10px}
+    .floating-total-wrap{position:sticky;top:72px;z-index:4;display:flex;justify-content:center;align-items:center;gap:10px;pointer-events:none;margin:0 0 10px;flex-wrap:wrap}
     .floating-total{pointer-events:auto;background:#eaf4ff;border:1pt solid #fff;border-radius:999px;box-shadow:0 10px 24px rgba(16,24,40,.12);padding:9px 18px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(12px)}
     .summary-label{color:#56d05f;font-size:12px;font-weight:900;white-space:nowrap}
     .summary-total{font-size:22px;font-weight:950;white-space:nowrap;color:#2f8f6b}
     .floating-total.neg{background:#fff0f0}.floating-total.neg .summary-label,.floating-total.neg .summary-total{color:#c94747}
+    .push-cta{pointer-events:auto;border:1px solid rgba(196,81,0,.18);background:#fff7ed;color:#9a3412;border-radius:999px;box-shadow:0 10px 24px rgba(16,24,40,.10);padding:9px 13px;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:950;cursor:pointer;white-space:nowrap;max-width:92vw}
+    .push-cta .bell{font-size:15px;line-height:1}.push-cta:active{transform:scale(.98)}.push-cta.hidden{display:none!important}
+    .push-cta.ready{background:#ecfdf3;color:#067647;border-color:#abefc6}
+    #toastBox{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:10px;width:min(92vw,430px);pointer-events:none}.toast{pointer-events:auto;border-radius:16px;padding:13px 15px;background:#111827;color:#fff;box-shadow:0 14px 34px rgba(16,24,40,.22);font-size:14px;font-weight:850}.toast.ok{background:#067647}.toast.err{background:#b42318}.toast.warn{background:#b54708}
+
     .floating-total.pos{background:#eaf8f0}.floating-total.pos .summary-label,.floating-total.pos .summary-total{color:#2f8f6b}
     .filters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
     .filter-option{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:850;color:#344054;white-space:nowrap}
@@ -107,6 +114,7 @@
           <span class="summary-label">Saldo total</span>
           <span class="summary-total" id="saldoTotal">$0.00</span>
         </div>
+        <button class="push-cta hidden" id="pushCta" type="button" onclick="activarNotificaciones()"><span class="bell">🔔</span><span>Activar notificaciones</span></button>
       </div>
       <div class="filters" role="radiogroup" aria-label="Filtro de movimientos">
         <label class="filter-option"><input type="radio" name="filtroTipo" value="todos" checked onchange="render()" /> Todos</label>
@@ -124,11 +132,16 @@
       <div class="loading-text">Cargando información...</div>
     </div>
   </div>
+  <div id="toastBox" aria-live="polite" aria-atomic="true"></div>
 
 <script>
   /***** CONFIGURACIÓN *****/
   const API_URL = 'https://script.google.com/macros/s/AKfycby896Ua2Y6EKgnl0Wn8cjAYXTQmcbIg8XpFKA3SnZokKY4zrLYhsI-9C31d_MZ68mY/exec';
   const STORAGE_KEY = 'cuenta_clara_clave_v2';
+  const PUSH_ENABLED_KEY = 'cuenta_clara_push_activado_v1';
+  // Para push real: pega tu VAPID public key y endpoint backend en las instrucciones.
+  const VAPID_PUBLIC_KEY = '';
+  const PUSH_SUBSCRIBE_URL = ''; // Ejemplo: https://tu-worker.workers.dev/subscribe
   /*************************/
 
   let datos = null;
@@ -195,6 +208,7 @@
       $('loginScreen').classList.add('hidden');
       $('appScreen').classList.remove('hidden');
       render(true);
+      actualizarEstadoBotonPush();
     }catch(err){
       if(desdeLogin){
         mostrarError(friendlyError(err));
@@ -430,6 +444,76 @@
     return JSON.parse(new TextDecoder().decode(plain));
   }
   function fromB64(str){ const bin=atob(str); const out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+
+
+  function toast(msg, type){
+    const box = $('toastBox');
+    if(!box) return;
+    const div = document.createElement('div');
+    div.className = 'toast ' + (type || '');
+    div.textContent = msg;
+    box.appendChild(div);
+    setTimeout(()=>{ div.style.opacity='0'; div.style.transform='translateY(8px)'; }, 2600);
+    setTimeout(()=> div.remove(), 3200);
+  }
+
+  function actualizarEstadoBotonPush(){
+    const btn = $('pushCta');
+    if(!btn) return;
+    const soporta = 'serviceWorker' in navigator && 'Notification' in window;
+    if(!soporta){ btn.classList.add('hidden'); return; }
+    const activado = localStorage.getItem(PUSH_ENABLED_KEY) === '1' || Notification.permission === 'granted';
+    btn.classList.toggle('hidden', activado);
+  }
+
+  async function activarNotificaciones(){
+    const btn = $('pushCta');
+    try{
+      if(!('serviceWorker' in navigator) || !('Notification' in window)){
+        toast('Este navegador no permite notificaciones web.', 'warn');
+        return;
+      }
+      btn && (btn.disabled = true);
+      const reg = await navigator.serviceWorker.register('./service-worker.js');
+      const permiso = await Notification.requestPermission();
+      if(permiso !== 'granted'){
+        toast('No se activaron las notificaciones.', 'warn');
+        btn && (btn.disabled = false);
+        return;
+      }
+
+      // Si configuras Web Push real, se suscribe y manda la suscripción al backend.
+      if(VAPID_PUBLIC_KEY && PUSH_SUBSCRIBE_URL && 'PushManager' in window){
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        await fetch(PUSH_SUBSCRIBE_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ subscription: sub, app: 'cuenta-clara' })
+        });
+      }
+
+      try{ await reg.showNotification('Cuenta Clara', { body:'Notificaciones activadas.', icon:'./icon-192.png', tag:'cuenta-clara-prueba' }); }catch(e){}
+      localStorage.setItem(PUSH_ENABLED_KEY, '1');
+      actualizarEstadoBotonPush();
+      toast('Notificaciones activadas.', 'ok');
+    }catch(err){
+      toast('No se pudieron activar las notificaciones.', 'err');
+      btn && (btn.disabled = false);
+    }
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
 
   init();
 </script>
