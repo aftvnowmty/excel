@@ -1,7 +1,7 @@
 {
-  "name": "Cuenta Clara",
-  "short_name": "Cuenta Clara",
-  "description": "Visor de movimientos y saldo de Cuenta Clara.",
+  "name": "Excel",
+  "short_name": "Excel",
+  "description": "Visor de movimientos y saldo.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
