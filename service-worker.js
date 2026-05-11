@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cuenta-clara-v4-0-badge';
+const CACHE_NAME = 'cuenta-clara-v4-2-detalle-push';
 const APP_SHELL = [
   './',
   './index.html',
@@ -32,19 +32,27 @@ self.addEventListener('fetch', event => {
 });
 
 self.addEventListener('push', event => {
-  let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data ? event.data.text() : '' }; }
-
-  const title = data.title || 'Cuenta Clara';
-  const options = {
-    body: data.body || 'Hay nuevos movimientos. Abre el visor para actualizar.',
-    icon: data.icon || './icon-192.png',
-    badge: data.badge || './icon-192.png',
-    data: { url: data.url || 'https://aftvnowmty.github.io/excel/' },
-    tag: 'cuenta-clara-actualizacion',
-    renotify: true
-  };
   event.waitUntil((async () => {
+    let data = {};
+
+    try {
+      data = event.data ? event.data.json() : {};
+    } catch (e) {
+      data = { body: event.data ? event.data.text() : '' };
+    }
+
+    if (!data || (!data.title && !data.body)) {
+      try {
+        const resp = await fetch('https://steep-butterfly-5ed1.jelr87.workers.dev/latest-notification?t=' + Date.now(), { cache: 'no-store' });
+        const latest = await resp.json();
+        if (resp.ok && latest && latest.ok) {
+          data = latest;
+        }
+      } catch (e) {
+        data = {};
+      }
+    }
+
     try {
       if (self.navigator && 'setAppBadge' in self.navigator) {
         await self.navigator.setAppBadge(1);
@@ -52,6 +60,17 @@ self.addEventListener('push', event => {
     } catch (e) {
       // El badge puede no estar disponible en todos los navegadores.
     }
+
+    const title = data.title || 'Cuenta Clara';
+    const options = {
+      body: data.body || 'Hay nuevos movimientos. Abre el visor para actualizar.',
+      icon: data.icon || './icon-192.png',
+      badge: data.badge || './icon-192.png',
+      data: { url: data.url || 'https://aftvnowmty.github.io/excel/' },
+      tag: 'cuenta-clara-actualizacion',
+      renotify: true
+    };
+
     await self.registration.showNotification(title, options);
   })());
 });
