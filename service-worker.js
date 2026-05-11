@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cuenta-clara-v3-8';
+const CACHE_NAME = 'cuenta-clara-v4-0-badge';
 const APP_SHELL = [
   './',
   './index.html',
@@ -40,22 +40,38 @@ self.addEventListener('push', event => {
     body: data.body || 'Hay nuevos movimientos. Abre el visor para actualizar.',
     icon: data.icon || './icon-192.png',
     badge: data.badge || './icon-192.png',
-    data: { url: data.url || './' },
+    data: { url: data.url || 'https://aftvnowmty.github.io/excel/' },
     tag: 'cuenta-clara-actualizacion',
     renotify: true
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    try {
+      if (self.navigator && 'setAppBadge' in self.navigator) {
+        await self.navigator.setAppBadge(1);
+      }
+    } catch (e) {
+      // El badge puede no estar disponible en todos los navegadores.
+    }
+    await self.registration.showNotification(title, options);
+  })());
 });
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const url = event.notification.data && event.notification.data.url ? event.notification.data.url : './';
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      for (const client of clientList) {
-        if ('focus' in client) return client.focus();
+  const url = event.notification.data && event.notification.data.url ? event.notification.data.url : 'https://aftvnowmty.github.io/excel/';
+  event.waitUntil((async () => {
+    try {
+      if (self.navigator && 'clearAppBadge' in self.navigator) {
+        await self.navigator.clearAppBadge();
       }
-      if (clients.openWindow) return clients.openWindow(url);
-    })
-  );
+    } catch (e) {
+      // Ignorar si el sistema no permite limpiar badge.
+    }
+
+    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientList) {
+      if ('focus' in client) return client.focus();
+    }
+    if (clients.openWindow) return clients.openWindow(url);
+  })());
 });

@@ -207,6 +207,7 @@
       $('appScreen').classList.remove('hidden');
       render(true);
       actualizarEstadoBotonPush();
+      await limpiarBadgeApp();
     }catch(err){
       if(desdeLogin){
         mostrarError(friendlyError(err));
@@ -524,6 +525,17 @@
       btn && (btn.disabled = false);
     }
   }
+
+  async function limpiarBadgeApp(){
+    try{
+      if('clearAppBadge' in navigator){
+        await navigator.clearAppBadge();
+      }
+    }catch(e){
+      console.warn('No se pudo limpiar badge de la app.', e);
+    }
+  }
+
 
   function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
