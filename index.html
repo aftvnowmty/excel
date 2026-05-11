@@ -53,19 +53,18 @@
     .filter-option input{margin:0;accent-color:var(--primary)}
     .search{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px;font:inherit;outline:none;margin-bottom:10px;background:#fff}
     .list{display:grid;gap:16px}
-    .month-card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 18px rgba(16,24,40,.05);overflow:hidden}
-    .month-header{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(90deg,#fff3c4 0%,#fff9e8 100%);border-bottom:1px solid #f3df9e;padding:12px 14px}
-    .month-title{font-weight:950;font-size:16px;color:#15202b;letter-spacing:-.01em}
-    .month-count{font-size:12px;font-weight:900;color:#b36b00;background:#fff3d1;border:1px solid #ffe2a1;border-radius:999px;padding:5px 9px;white-space:nowrap}
-    .month-movs{display:grid;gap:0}
-    .mov{background:#fff;border:0;border-bottom:1px solid rgba(215,221,232,.85);border-radius:0;padding:11px 13px;box-shadow:none}
+    .month-card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 18px rgba(16,24,40,.05);overflow:hidden;display:grid;grid-template-columns:76px 1fr}
+    .month-rail{background:linear-gradient(180deg,#ffc400 0%,#ffb800 100%);border-right:1px solid rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;padding:10px 6px;min-height:100%}
+    .month-vertical{font-size:24px;font-weight:950;line-height:1.55;letter-spacing:.02em;color:#060606;text-align:center;white-space:pre-line;text-shadow:0 1px 0 rgba(255,255,255,.22)}
+    .month-movs{display:grid;gap:0;min-width:0}
+    .mov{background:#fff;border:0;border-bottom:1px solid rgba(0,0,0,.12);border-radius:0;padding:0;box-shadow:none;min-width:0}
     .mov:last-child{border-bottom:0}
-    .mov.mov-pos{background:linear-gradient(90deg,#effdf5 0%,#f7fffb 100%)}
-    .mov.mov-neg{background:linear-gradient(90deg,#fff1f3 0%,#fff8f9 100%)}
-    .mov-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;min-width:0}
-    .type-dot{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:950;flex:0 0 auto}
-    .type-dot.pos{background:#dff8e9;color:#11845b}.type-dot.neg{background:#ffe0e6;color:#d11f35}
-    .mov-main{min-width:0}.mov-line{display:flex;align-items:center;gap:10px;min-width:0}.date{color:var(--text);font-size:14px;font-weight:750;white-space:nowrap}.desc{font-size:15px;font-weight:850;line-height:1.25;word-break:break-word;margin-top:3px}.new-tag{display:inline-flex;align-items:center;margin-left:7px;padding:3px 7px;border-radius:999px;background:#e92d3a;color:#fff;font-size:10px;font-weight:950;letter-spacing:.04em;vertical-align:middle;box-shadow:0 4px 10px rgba(233,45,58,.18)}.mov.is-new{position:relative;box-shadow:inset 4px 0 0 rgba(233,45,58,.42)}.amount{font-size:15px;font-weight:950;text-align:right;white-space:nowrap}.amount.pos{color:var(--ok)}.amount.neg{color:var(--danger)}
+    .mov.mov-pos{background:linear-gradient(90deg,#f1fbf6 0%,#fbfffd 100%)}
+    .mov.mov-neg{background:linear-gradient(90deg,#fff0f2 0%,#fff8f9 100%)}
+    .mov-row{display:grid;grid-template-columns:64px 1fr minmax(104px,auto);align-items:center;gap:0;min-width:0}
+    .day-cell{height:58px;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(0,0,0,.12);font-size:30px;font-weight:950;color:#050505;letter-spacing:-.04em;background:rgba(255,255,255,.28)}
+    .mov-main{min-width:0;padding:10px 12px}.desc{font-size:17px;font-weight:850;line-height:1.22;word-break:break-word}.new-tag{display:inline-flex;align-items:center;margin-left:8px;padding:3px 7px;border-radius:7px;background:#e92d3a;color:#fff;font-size:10px;font-weight:950;letter-spacing:.03em;vertical-align:middle;box-shadow:0 4px 10px rgba(233,45,58,.18)}.mov.is-new{position:relative}.amount{height:58px;display:flex;align-items:center;justify-content:flex-end;gap:6px;border-left:1px solid rgba(0,0,0,.12);padding:0 12px;font-size:18px;font-weight:950;text-align:right;white-space:nowrap}.amount.pos{color:var(--ok)}.amount.neg{color:var(--danger)}
+    @media (max-width:520px){.month-card{grid-template-columns:56px 1fr}.month-vertical{font-size:20px;line-height:1.45}.mov-row{grid-template-columns:48px 1fr minmax(84px,auto)}.day-cell{font-size:25px;height:56px}.desc{font-size:15px}.amount{font-size:15px;height:56px;padding:0 9px}.new-tag{font-size:9px;padding:2px 6px}}
     .empty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:18px;text-align:center;color:var(--muted)}
     .loading-overlay{position:fixed;inset:0;z-index:99;background:rgba(245,247,251,.78);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:22px}
     .loading-box{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:24px 26px;text-align:center;min-width:240px}
@@ -192,7 +191,7 @@
       }catch(e){}
 
       $('titulo').textContent = 'Movimientos' + (datos.persona ? ' · ' + datos.persona : '');
-      $('subtitulo').textContent = (datos.actualizado ? 'Actualizado: ' + datos.actualizado + ' · ' : '') + movimientos.length + ' registros';
+      $('subtitulo').textContent = 'Actualizado: ' + friendlyUpdated(resp.updated || datos.actualizado) + ' · ' + movimientos.length + ' registros';
       $('loginScreen').classList.add('hidden');
       $('appScreen').classList.remove('hidden');
       render(true);
@@ -281,10 +280,7 @@
       const card = document.createElement('section');
       card.className = 'month-card';
       card.innerHTML = `
-        <div class="month-header">
-          <div class="month-title">${monthLabelFromKey(key)}</div>
-          <div class="month-count">${items.length} ${items.length === 1 ? 'movimiento' : 'movimientos'}</div>
-        </div>
+        <div class="month-rail" aria-label="${monthNameFromKey(key)}"><div class="month-vertical">${monthVerticalFromKey(key)}</div></div>
         <div class="month-movs"></div>`;
       const container = card.querySelector('.month-movs');
       items.forEach(m => {
@@ -294,12 +290,11 @@
         div.dataset.fecha = m.fecha || '';
         div.innerHTML = `
           <div class="mov-row">
-            <div class="type-dot ${monto>=0?'pos':'neg'}" aria-hidden="true">${monto>=0?'↓':'↑'}</div>
+            <div class="day-cell">${dayOfMonth(m.fecha)}</div>
             <div class="mov-main">
-              <div class="mov-line"><span class="date">${fechaMx(m.fecha)}</span></div>
               <div class="desc">${escapeHtml(m.descripcion || 'Sin descripción')}${newMovementKeys.has(m._key) ? '<span class="new-tag">NUEVO</span>' : ''}</div>
             </div>
-            <div class="amount ${monto>=0?'pos':'neg'}">${monto>=0?'+':''}${money(monto)}</div>
+            <div class="amount ${monto>=0?'pos':'neg'}">${monto<0?'-$':'$'}&nbsp;${moneyAbs(monto)}</div>
           </div>`;
         container.appendChild(div);
         latestVisibleEl = div;
@@ -320,6 +315,66 @@
 
   function monthLabel(iso){
     return monthLabelFromKey(monthKey(iso));
+  }
+
+  function dayOfMonth(iso){
+    const parts = String(iso || '').split('-');
+    return parts.length >= 3 ? String(parts[2]).padStart(2,'0') : '—';
+  }
+
+  function monthNameFromKey(key){
+    const [,m] = String(key || '').split('-');
+    const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const idx = Math.max(0, Math.min(11, Number(m || 1)-1));
+    return months[idx];
+  }
+
+  function monthVerticalFromKey(key){
+    return monthNameFromKey(key).split('').join('\n');
+  }
+
+  function moneyAbs(cents){
+    const value = Math.abs(Number(cents || 0))/100;
+    return new Intl.NumberFormat('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2}).format(value);
+  }
+
+  function friendlyUpdated(value){
+    const d = parseUpdateDate(value);
+    if(!d) return 'sin fecha';
+    const now = new Date();
+    let diffMs = now.getTime() - d.getTime();
+    if(diffMs < 0) diffMs = 0;
+    const mins = Math.floor(diffMs / 60000);
+    if(mins < 1) return 'hace un momento';
+    if(mins <= 60) return `hace ${mins} ${mins === 1 ? 'minuto' : 'minutos'}`;
+    const hours = Math.floor(diffMs / 3600000);
+    if(hours < 24) return `hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thatDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const days = Math.floor((today - thatDay) / 86400000);
+    if(days <= 0) return 'hoy';
+    if(days <= 3) return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
+    return fechaMx(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+
+  function parseUpdateDate(value){
+    if(!value) return null;
+    if(value instanceof Date && !isNaN(value)) return value;
+    const s = String(value).trim();
+    let d = new Date(s);
+    if(!isNaN(d)) return d;
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?)?/i);
+    if(m){
+      let hour = Number(m[4] || 0);
+      const min = Number(m[5] || 0);
+      const sec = Number(m[6] || 0);
+      const ap = String(m[7] || '').toLowerCase();
+      if(ap.includes('p') && hour < 12) hour += 12;
+      if(ap.includes('a') && hour === 12) hour = 0;
+      d = new Date(Number(m[3]), Number(m[2])-1, Number(m[1]), hour, min, sec);
+      if(!isNaN(d)) return d;
+    }
+    return null;
   }
 
   function monthLabelFromKey(key){
